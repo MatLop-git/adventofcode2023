@@ -87,8 +87,7 @@ public:
       std::string currentLine;
       std::ifstream inputFile(inputFileName);
       if ( inputFile.is_open() ) {
-         while ( inputFile ) {
-            std::getline(inputFile, currentLine);
+         while ( std::getline(inputFile, currentLine) ) {
             int currentValue = this->getLineValue(currentLine);
             totalSum += currentValue;
          }
