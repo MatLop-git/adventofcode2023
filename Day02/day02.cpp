@@ -24,7 +24,7 @@ public:
       std::string::size_type parsePos = line.find(":");
       int gameId = atoi(line.substr(5, parsePos).c_str());
 
-      std::cout << gameId << " - " << line << std::endl;
+//      std::cout << gameId << " - " << line << std::endl;
 
       // parse cubes
       std::string::size_type parseEndPos = line.find_first_of(",;", parsePos);
@@ -41,24 +41,23 @@ public:
          {
             setString = line.substr(parsePos+1);
          }
-         std::cout << "- " << setString << std::endl;
+//         std::cout << "- " << setString << std::endl;
 
          // determine cube color
          std::string::size_type colourPos = setString.find(RED_VALUE);
          if( colourPos != std::string ::npos )
          {
             int cubes = atoi(setString.substr(0, colourPos).c_str());
-         std::cout << "- " << cubes << " red on set " << setString << std::endl;
+//         std::cout << "- " << cubes << " red on set " << setString << std::endl;
             if( cubes > MAX_RED_CUBES )
                return 0;
          }
          
          colourPos = setString.find(GREEN_VALUE);
-//         std::cout << "- " << colourPos << std::endl;
          if( colourPos != std::string ::npos )
          {
             int cubes = atoi(setString.substr(0, colourPos).c_str());
-         std::cout << "- " << cubes << " green on set " << setString << std::endl;
+//         std::cout << "- " << cubes << " green on set " << setString << std::endl;
             if( cubes > MAX_GREEN_CUBES )
                return 0;
          }
@@ -67,7 +66,7 @@ public:
          if( colourPos != std::string ::npos )
          {
             int cubes = atoi(setString.substr(0, colourPos).c_str());
-         std::cout << "- " << cubes << " blue on set " << setString << std::endl;
+//         std::cout << "- " << cubes << " blue on set " << setString << std::endl;
             if( cubes > MAX_BLUE_CUBES )
                return 0;
          }
@@ -99,6 +98,98 @@ public:
    }
 };
 
+class Helper2
+{
+public:
+
+   Helper2() {}
+   ~Helper2() {}
+
+   int getLineValue(std::string line)
+   {
+      // parse game id
+      std::string::size_type parsePos = line.find(":");
+
+//      std::cout << line << std::endl;
+
+      // parse cubes
+      std::string::size_type parseEndPos = line.find_first_of(",;", parsePos);
+      int higherRedValue = 0;
+      int higherGreenValue = 0;
+      int higherBlueValue = 0;
+      bool hasValues = true;
+      do
+      {
+         hasValues = parseEndPos != std::string::npos;
+         std::string setString = "";
+         if( hasValues )
+         {
+            setString = line.substr(parsePos+1, parseEndPos-parsePos);
+         }
+         else
+         {
+            setString = line.substr(parsePos+1);
+         }
+//         std::cout << "- " << setString << std::endl;
+
+         // determine cube color
+         std::string::size_type colourPos = setString.find(RED_VALUE);
+         if( colourPos != std::string ::npos )
+         {
+            int cubes = atoi(setString.substr(0, colourPos).c_str());
+//         std::cout << "- " << cubes << " red on set " << setString << std::endl;
+            if( cubes > higherRedValue )
+               higherRedValue = cubes;
+         }
+         
+         colourPos = setString.find(GREEN_VALUE);
+//         std::cout << "- " << colourPos << std::endl;
+         if( colourPos != std::string ::npos )
+         {
+            int cubes = atoi(setString.substr(0, colourPos).c_str());
+//         std::cout << "- " << cubes << " green on set " << setString << std::endl;
+            if( cubes > higherGreenValue )
+               higherGreenValue = cubes;
+         }
+
+         colourPos = setString.find(BLUE_VALUE);
+         if( colourPos != std::string ::npos )
+         {
+            int cubes = atoi(setString.substr(0, colourPos).c_str());
+//         std::cout << "- " << cubes << " blue on set " << setString << std::endl;
+            if( cubes > higherBlueValue )
+               higherBlueValue = cubes;
+         }
+
+         if( hasValues )
+         {
+            parsePos = parseEndPos+1;
+            parseEndPos = line.find_first_of(",;", parsePos);
+         }
+      }
+      while(hasValues);
+
+//      std::cout << "higher values: red " << higherRedValue << " green " << higherGreenValue << " blue " << higherBlueValue << std::endl;
+
+      return (higherRedValue * higherGreenValue * higherBlueValue);
+   }
+
+   int getPuzzleAnswer(std::string inputFileName)
+   {
+      int totalSum = 0;
+      std::string currentLine;
+      std::ifstream inputFile(inputFileName);
+      if ( inputFile.is_open() ) {
+         while ( std::getline(inputFile, currentLine) ) {
+            int currentValue = this->getLineValue(currentLine);
+            totalSum += currentValue;
+         }
+      }
+
+      return totalSum;
+   }
+};
+
 int main()
 {
    std::cout << "Advent of Code 2023 - Day 02" << std::endl;
@@ -107,5 +198,10 @@ int main()
    Helper helper;
    int totalSum = helper.getPuzzleAnswer(inputFileName);
 
-   std::cout << "Total: " << totalSum << std::endl;
+   std::cout << "First half answer: " << totalSum << std::endl;
+
+   Helper2 helper2;
+   totalSum = helper2.getPuzzleAnswer(inputFileName);
+
+   std::cout << "Second half answer: " << totalSum << std::endl;
 }
