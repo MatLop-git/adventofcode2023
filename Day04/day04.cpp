@@ -150,17 +150,10 @@ public:
          }
       }
 
-      // multiply points per copies
+      // sum copies
       for(int i=0; i<_fileInput.size(); ++i)
       {
          this->_secondPuzzleAnswer += copies[i];
-            std::cout << i << " - " << copies[i] << " " << matches[i] << " > " << this->_secondPuzzleAnswer << std::endl;
-//         if( matches[i] > 0 )
-//         {
-//            int points = (matches[i] == 1) ? 1 : pow(2,matches[i]-1);
-//            std::cout << i << " - " << matches[i] << " " << points << " " << copies[i] << " = " << (points * copies[i]) << std::endl;
-//            this->_secondPuzzleAnswer += (points * copies[i]);
-//         }
       }
    }
 
