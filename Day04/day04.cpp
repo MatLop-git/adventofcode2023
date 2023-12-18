@@ -77,23 +77,6 @@ public:
          this->_firstPuzzleAnswer += pointsDelta;
 
 //         std::cout << " " << log2(pointsDelta) << std::endl;
-/*
-         // separate winning numbers from numbers you have
-         std::string winningNumbersString = line.substr(0, line.find("|", parsePos));
-         std::string yourNumbersString = line.substr(winningNumbersString.length()-1);
-
-         // discriminate winning numbers
-         std::vector<int> winningNumbers;
-         do
-         {
-
-            parsePos = line.find_first_of("0123456789", parseEndPos);
-         }
-         while( parsePos != std::string::npos );
-
-         // discriminate your numbers
-         std::vector<int> yourNumbers;
-*/
       }
    }
 
