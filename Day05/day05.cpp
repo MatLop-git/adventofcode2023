@@ -72,19 +72,28 @@ public:
    }
 };
 
+struct SeedsRange
+{
+   ulong Start = 0;
+   ulong Range = 0;
+
+   SeedsRange(ulong start, ulong range=1) : Start(start), Range(range)
+   { }
+};
+
 class Almanac
 {
 private:
-   std::vector<ulong> _seeds;
+   std::vector<SeedsRange> _seeds;
    std::vector<Map> _maps;
 
 public:
    Almanac() { }
    ~Almanac() { }
 
-   void addSeed(ulong seed)
+   void addSeed(ulong seed, ulong range=1)
    {
-      this->_seeds.push_back(seed);
+      this->_seeds.push_back(SeedsRange(seed, range));
    }
 
    void addMap(Map map)
@@ -107,16 +116,20 @@ public:
 
    ulong getLowestLocation()
    {
-
-      ulong lowestSeed = this->_seeds[0];
+      ulong lowestSeed = this->_seeds[0].Start;
       ulong lowestLocation = this->getSeedLocation(lowestSeed);
-      for(int i=1; i<this->_seeds.size(); ++i)
+      for(int i=0; i<this->_seeds.size(); ++i)
       {
-         ulong location = this->getSeedLocation(this->_seeds[i]);
-         if( location < lowestLocation )
+         SeedsRange seedsRange = this->_seeds[i];
+         for(ulong j=0; j<seedsRange.Range; ++j)
          {
-            lowestLocation = location;
-            lowestSeed = this->_seeds[i];
+            ulong seed = seedsRange.Start + j;
+            ulong location = this->getSeedLocation(seed);
+            if( location < lowestLocation )
+            {
+               lowestLocation = location;
+               lowestSeed = seed;
+            }
          }
       }
       return lowestLocation;
@@ -208,6 +221,71 @@ public:
    void calculateSecondPuzzleAnswer()
    {
       this->_secondPuzzleAnswer = 0;
+
+      Almanac almanac;
+      // obtain seeds
+      char* end = nullptr;
+      std::string line = _fileInput[0];
+      std::string::size_type parsePos = line.find(":")+2;
+      do
+      {
+         std::string::size_type parseEndPos = line.find(" ", parsePos);
+         std::string seedString = line.substr(parsePos, parseEndPos);
+         ulong seedStart = strtoul(seedString.c_str(),&end,10);
+
+         parsePos = parseEndPos+1;
+         parseEndPos = line.find(" ", parsePos);
+         std::string rangeString = line.substr(parsePos, parseEndPos);
+         ulong seedsRange = strtoul(rangeString.c_str(),&end,10);
+
+         almanac.addSeed(seedStart, seedsRange);
+
+         parsePos = parseEndPos;
+         if(parsePos != std::string::npos)
+         {
+            parsePos++;
+         }
+      }
+      while(parsePos != std::string::npos);
+      
+      // obtain mapranges
+      Map newMap;
+      for(int i=3; i<_fileInput.size(); ++i)
+      {
+         std::string line = _fileInput[i];
+         int lineLength = line.length();
+         if(lineLength > 0)
+         {
+            if( line[0] >= '0' && line[0] <= '9' )
+            {
+               // parse maps
+               std::string::size_type parseEndPos = line.find(" ");
+               std::string auxString = line.substr(0, parseEndPos);
+
+               ulong destination = strtoul(auxString.c_str(), &end, 10);
+               parsePos = parseEndPos+1;
+
+               parseEndPos = line.find(" ", parsePos);
+               auxString = line.substr(parsePos, parseEndPos);
+               ulong source = strtoul(auxString.c_str(), &end, 10);
+               parsePos = parseEndPos+1;
+
+               auxString = line.substr(parsePos);
+               ulong range = strtoul(auxString.c_str(), &end, 10);
+
+               newMap.addRange(source, destination, range);
+//               std::cout << "- " << destination << " " << source << " " << range << std::endl;
+            }
+         }
+         else
+         {
+            almanac.addMap(newMap);
+            newMap = Map();
+         }
+      }
+      almanac.addMap(newMap);
+
+      this->_secondPuzzleAnswer = almanac.getLowestLocation();
    }
 
    void calculateAnswers(std::string inputFileName)
