@@ -94,7 +94,7 @@ public:
             maxMapRange = this->_mapRanges[i];
          }
       }
-      std::cout << "Max MapRange: " << maxMapRange.Source << " - " << maxMapRange.Destination << " - " << maxMapRange.Range << std::endl;
+//      std::cout << "Max MapRange: " << maxMapRange.Source << " - " << maxMapRange.Destination << " - " << maxMapRange.Range << std::endl;
 
       // search for sources outside of the MapRanges
       ulong source = 0;
@@ -161,7 +161,7 @@ public:
       std::vector<MapRange> keySeeds;
       bool lastSeed = false;
       SeedsRange seedsLeft = seedsRange;
-      std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
+//      std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
       do
       {
          // find MapRange for source
@@ -179,14 +179,14 @@ public:
          // add new MapRange for the calculation
          MapRange newMapRange(seed, destination, range);
          keySeeds.push_back(newMapRange);
-            std::cout << " - [" << newMapRange.Source << ", " << newMapRange.Destination << "] [" << newMapRange.Source+newMapRange.Range << ", " << newMapRange.Destination+newMapRange.Range << "] - " << newMapRange.Range << std::endl;
+//            std::cout << " - [" << newMapRange.Source << ", " << newMapRange.Destination << "] [" << newMapRange.Source+newMapRange.Range << ", " << newMapRange.Destination+newMapRange.Range << "] - " << newMapRange.Range << std::endl;
 
          // verify if there's more seeds to cover
          if( !lastSeed )
          {
             seedsLeft.Start = (newMapRange.Source + newMapRange.Range);
             seedsLeft.Range = (seedsLeft.Range - newMapRange.Range);
-            std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
+//            std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
          }
       }
       while(lastSeed == false);
@@ -220,14 +220,15 @@ public:
       ulong destination = seed;
       for(int i=0; i<this->_maps.size(); ++i)
       {
-         std::cout << " >> " << destination;
+//         std::cout << " >> " << destination;
          destination = this->_maps[i].getDestination(destination);
       }
-      std::cout << " >> " << destination << std::endl;
+//      std::cout << " >> " << destination << std::endl;
 //      std::cout << "- " << seed << " " << destination << std::endl;
       return destination;
    }
 
+   /** Gets the lowest location for the seeds.*/
    ulong getLowestLocation()
    {
       ulong lowestSeed = this->_seeds[0].Start;
@@ -248,44 +249,10 @@ public:
       }
       return lowestLocation;
    }
-/*
-   std::vector<ulong> getKeySeeds(SeedsRange seedsRange, int mapIndex)
-   {
-      std::vector<ulong> keySeeds;
 
-      Map map = this->_maps[mapIndex];
-      std::vector<MapRange> seedsDestinationsAux = map.getKeySeeds(seedsRange);
-      
-      mapIndex++;
-      if( mapIndex < this->_maps.size() )
-      {
-         Map map2 = this->_maps[mapIndex];
-         for(int i=0; i<seedsDestinationsAux.size(); ++i)
-         {
-            MapRange mapRangeAux = seedsDestinationsAux[i];
-            SeedsRange seedsRangeAux(mapRangeAux.Destination, mapRangeAux.Range);
-            std::vector<MapRange> seedsDestinationsAux2 = map2.getKeySeeds(seedsRangeAux);
-            for(int j=0; j<seedsDestinationsAux2.size(); ++j)
-            {
-               ulong destination = seedsDestinationsAux2[j].Source;
-               MapRange mapRangeAux2 = map.getMapRangeForDestination(destination);
-               ulong source = mapRangeAux2.getSource(destination);
-               keySeeds.push_back(source);
-            }
-         }
-      }
-      else
-      {
-         for(int j=0; j<seedsDestinationsAux.size(); ++j)
-         {
-            ulong source = seedsDestinationsAux[j].Source;
-            keySeeds.push_back(source);
-         }
-      }
-
-      return keySeeds;
-   }
-*/
+   /** Given a range of seeds, returns the seeds that corresponds to different destination 'gaps'.
+    *  It verifies the destinations until reaching the final map.
+   */
    std::vector<ulong> getKeySeeds(SeedsRange seedsRange, int mapIndex)
    {
       std::vector<ulong> keySeeds;
@@ -322,7 +289,10 @@ public:
       return keySeeds;
    }
 
-   ulong getLowestLocation2()
+   /** Gets the lowest location for a wide range of seeds.
+    *  It first obtains the key seeds to lower the amount of seeds to check.
+   */
+   ulong getLowestLocationWithKeySeeds()
    {
       ulong lowestLocation = 999999999;
       for(int i=0; i<this->_seeds.size(); ++i)
@@ -509,7 +479,7 @@ public:
       newMap.fillEmptyRanges();
       almanac.addMap(newMap);
 
-      this->_secondPuzzleAnswer = almanac.getLowestLocation2();
+      this->_secondPuzzleAnswer = almanac.getLowestLocationWithKeySeeds();
    }
 
    void calculateAnswers(std::string inputFileName)
@@ -546,13 +516,6 @@ int main()
    const std::string inputFileName = "input";
    Helper helper;
    helper.calculateAnswers(inputFileName);
-//   std::thread t1(calculateAnswers, &helper, inputFileName);
-//   do
-//   {
-//      sleep(1);
-//   }
-//   while(helper.getSecondPuzzleAnswer() == 0);
-
 
    ulong answer = helper.getFirstPuzzleAnswer();
    std::cout << "First half answer: " << answer << std::endl;
