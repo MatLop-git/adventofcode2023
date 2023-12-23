@@ -4,6 +4,17 @@
 #include <utility>
 #include <vector>
 #include <cmath>
+#include <thread>
+#include <unistd.h>
+
+struct SeedsRange
+{
+   ulong Start = 0;
+   ulong Range = 0;
+
+   SeedsRange(ulong start, ulong range=1) : Start(start), Range(range)
+   { }
+};
 
 struct MapRange
 {
@@ -16,15 +27,35 @@ struct MapRange
 
    bool isInRange(ulong source)
    {
-      ulong maxSource = this->Source+this->Range;
+      ulong maxSource = this->Source+this->Range-1;
       bool result = (source >= this->Source) && (source <= maxSource);
       return result;
+   }
+
+   bool isDestinationInRange(ulong destination)
+   {
+      ulong maxDestination = this->Destination+this->Range-1;
+      bool result = (destination >= this->Destination) && (destination <= maxDestination);
+      return result;
+   }
+
+   ulong getSource(ulong destination)
+   {
+      // look if number is in range
+      long delta = destination - this->Destination;
+      if( delta >= 0 && delta <= this->Range )
+      {
+         return (this->Source + delta);
+      }
+
+      // if not in range, source is the same as destination
+      return destination;
    }
 
    ulong getDestination(ulong source)
    {
       // look if number is in range
-      int delta = source - this->Source;
+      long delta = source - this->Source;
 //      std::cout << " >> " << source << " - " << Destination << " " << Source << " " << Range << " : " << this->Destination + delta << std::endl;
       if( delta >= 0 && delta <= this->Range )
       {
@@ -51,16 +82,70 @@ public:
       _mapRanges.push_back(mapRange);
    }
 
-   ulong getDestination(ulong source)
+   void fillEmptyRanges()
+   {
+      std::cout << "Filling empty ranges" << std::endl;
+      // obtain the MapRange for the highest source
+      MapRange maxMapRange = this->_mapRanges[0];
+      for(int i=1;i<this->_mapRanges.size(); ++i)
+      {
+         if(this->_mapRanges[i].Source > maxMapRange.Source)
+         {
+            maxMapRange = this->_mapRanges[i];
+         }
+      }
+      std::cout << "Max MapRange: " << maxMapRange.Source << " - " << maxMapRange.Destination << " - " << maxMapRange.Range << std::endl;
+
+      // search for sources outside of the MapRanges
+      ulong source = 0;
+      do
+      {
+         MapRange mapRange = this->getMapRangeForSource(source);
+         if(mapRange.Source == mapRange.Destination)
+         {
+            MapRange mapRangeAux = mapRange;
+            do
+            {
+               mapRangeAux = this->getMapRangeForSource(mapRangeAux.Source+1);
+            }
+            while(mapRangeAux.Source == mapRangeAux.Destination);
+            mapRange.Range = mapRangeAux.Source - mapRange.Source;
+            this->_mapRanges.push_back(mapRange);
+            std::cout << "New MapRange: " << mapRange.Source << " - " << mapRange.Destination << " - " << mapRange.Range << std::endl;
+         }
+         source += mapRange.Range;
+      }
+      while(source < maxMapRange.Source);
+   }
+
+   MapRange getMapRangeForSource(ulong source)
    {
       for(int i=0; i<_mapRanges.size(); ++i)
       {
          if( _mapRanges[i].isInRange(source) )
          {
-            return _mapRanges[i].getDestination(source);
+            return _mapRanges[i];
          }
       }
-      return source;
+      return MapRange(source, source, 1);
+   }
+
+   MapRange getMapRangeForDestination(ulong destination)
+   {
+      for(int i=0; i<_mapRanges.size(); ++i)
+      {
+         if( _mapRanges[i].isDestinationInRange(destination) )
+         {
+            return _mapRanges[i];
+         }
+      }
+      return MapRange(destination, destination, 1);
+   }
+
+   ulong getDestination(ulong source)
+   {
+      MapRange mapRange = this->getMapRangeForSource(source);
+      return mapRange.getDestination(source);
    }
 
    void printMapRanges()
@@ -70,15 +155,44 @@ public:
          std::cout << " >> " << _mapRanges[i].Destination << " " << _mapRanges[i].Source << " " << _mapRanges[i].Range << std::endl;
       }
    }
-};
 
-struct SeedsRange
-{
-   ulong Start = 0;
-   ulong Range = 0;
+   std::vector<MapRange> getKeySeeds(SeedsRange seedsRange)
+   {
+      std::vector<MapRange> keySeeds;
+      bool lastSeed = false;
+      SeedsRange seedsLeft = seedsRange;
+      std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
+      do
+      {
+         // find MapRange for source
+         ulong seed = seedsLeft.Start;
+         MapRange destinationMapRange = this->getMapRangeForSource(seed);
+         // calculate how much range does the MapRange covers
+         long delta = seed - destinationMapRange.Source;
+         ulong destination = destinationMapRange.Destination + delta;
+         ulong range = (destinationMapRange.Range - delta);
+         lastSeed = (seedsLeft.Range <= range);
+         if( lastSeed )
+         {
+            range = seedsLeft.Range;
+         }
+         // add new MapRange for the calculation
+         MapRange newMapRange(seed, destination, range);
+         keySeeds.push_back(newMapRange);
+            std::cout << " - [" << newMapRange.Source << ", " << newMapRange.Destination << "] [" << newMapRange.Source+newMapRange.Range << ", " << newMapRange.Destination+newMapRange.Range << "] - " << newMapRange.Range << std::endl;
 
-   SeedsRange(ulong start, ulong range=1) : Start(start), Range(range)
-   { }
+         // verify if there's more seeds to cover
+         if( !lastSeed )
+         {
+            seedsLeft.Start = (newMapRange.Source + newMapRange.Range);
+            seedsLeft.Range = (seedsLeft.Range - newMapRange.Range);
+            std::cout << " - Seeds " << seedsLeft.Start << " " << seedsLeft.Range << std::endl;
+         }
+      }
+      while(lastSeed == false);
+      
+      return keySeeds;
+   }
 };
 
 class Almanac
@@ -106,10 +220,10 @@ public:
       ulong destination = seed;
       for(int i=0; i<this->_maps.size(); ++i)
       {
-//         std::cout << " >> " << destination;
+         std::cout << " >> " << destination;
          destination = this->_maps[i].getDestination(destination);
       }
-//      std::cout << " >> " << destination << std::endl;
+      std::cout << " >> " << destination << std::endl;
 //      std::cout << "- " << seed << " " << destination << std::endl;
       return destination;
    }
@@ -133,6 +247,113 @@ public:
          }
       }
       return lowestLocation;
+   }
+/*
+   std::vector<ulong> getKeySeeds(SeedsRange seedsRange, int mapIndex)
+   {
+      std::vector<ulong> keySeeds;
+
+      Map map = this->_maps[mapIndex];
+      std::vector<MapRange> seedsDestinationsAux = map.getKeySeeds(seedsRange);
+      
+      mapIndex++;
+      if( mapIndex < this->_maps.size() )
+      {
+         Map map2 = this->_maps[mapIndex];
+         for(int i=0; i<seedsDestinationsAux.size(); ++i)
+         {
+            MapRange mapRangeAux = seedsDestinationsAux[i];
+            SeedsRange seedsRangeAux(mapRangeAux.Destination, mapRangeAux.Range);
+            std::vector<MapRange> seedsDestinationsAux2 = map2.getKeySeeds(seedsRangeAux);
+            for(int j=0; j<seedsDestinationsAux2.size(); ++j)
+            {
+               ulong destination = seedsDestinationsAux2[j].Source;
+               MapRange mapRangeAux2 = map.getMapRangeForDestination(destination);
+               ulong source = mapRangeAux2.getSource(destination);
+               keySeeds.push_back(source);
+            }
+         }
+      }
+      else
+      {
+         for(int j=0; j<seedsDestinationsAux.size(); ++j)
+         {
+            ulong source = seedsDestinationsAux[j].Source;
+            keySeeds.push_back(source);
+         }
+      }
+
+      return keySeeds;
+   }
+*/
+   std::vector<ulong> getKeySeeds(SeedsRange seedsRange, int mapIndex)
+   {
+      std::vector<ulong> keySeeds;
+
+      Map map = this->_maps[mapIndex];
+      std::vector<MapRange> seedsDestinationsAux = map.getKeySeeds(seedsRange);
+      
+      mapIndex++;
+      if( mapIndex < this->_maps.size() )
+      {
+         for(int i=0; i<seedsDestinationsAux.size(); ++i)
+         {
+            MapRange mapRangeAux = seedsDestinationsAux[i];
+            SeedsRange seedsRangeAux(mapRangeAux.Destination, mapRangeAux.Range);
+            std::vector<ulong> keySeedsAux = this->getKeySeeds(seedsRangeAux, mapIndex);
+            for(int j=0; j<keySeedsAux.size(); ++j)
+            {
+               ulong destination = keySeedsAux[j];
+               MapRange mapRangeAux2 = map.getMapRangeForDestination(destination);
+               ulong source = mapRangeAux2.getSource(destination);
+               keySeeds.push_back(source);
+            }
+         }
+      }
+      else
+      {
+         for(int j=0; j<seedsDestinationsAux.size(); ++j)
+         {
+            ulong source = seedsDestinationsAux[j].Source;
+            keySeeds.push_back(source);
+         }
+      }
+
+      return keySeeds;
+   }
+
+   ulong getLowestLocation2()
+   {
+      ulong lowestLocation = 999999999;
+      for(int i=0; i<this->_seeds.size(); ++i)
+      {
+         SeedsRange seedsRange = this->_seeds[i];
+         std::vector<ulong> keySeeds = this->getKeySeeds(seedsRange, 0);
+         for(int j=0; j<keySeeds.size(); ++j)
+         {
+            ulong seed = keySeeds[j];
+            ulong location = this->getSeedLocation(seed);
+            if( location < lowestLocation )
+            {
+               lowestLocation = location;
+            }
+         }
+      }
+      return lowestLocation;
+   }
+
+   ulong getKeySeeds()
+   {
+      for(int i=0; i<1; ++i)
+      {
+         SeedsRange seedsRange = this->_seeds[i];
+         std::vector<ulong> seedsDestinations = this->getKeySeeds(seedsRange, 0);
+//         for(int i=0; i<seedsDestinations.size(); ++i)
+//         {
+//            std::cout << " - [" << seedsDestinations[i].Source << ", " << seedsDestinations[i].Destination << "] [" << seedsDestinations[i].Source+seedsDestinations[i].Range << ", " << seedsDestinations[i].Destination+seedsDestinations[i].Range << "] - " << seedsDestinations[i].Range << std::endl;
+//         }
+      }
+      return 0;
    }
 
    void printMaps()
@@ -209,6 +430,7 @@ public:
          }
          else
          {
+//            newMap.fillEmptyRanges();
             almanac.addMap(newMap);
             newMap = Map();
          }
@@ -279,13 +501,15 @@ public:
          }
          else
          {
+            newMap.fillEmptyRanges();
             almanac.addMap(newMap);
             newMap = Map();
          }
       }
+      newMap.fillEmptyRanges();
       almanac.addMap(newMap);
 
-      this->_secondPuzzleAnswer = almanac.getLowestLocation();
+      this->_secondPuzzleAnswer = almanac.getLowestLocation2();
    }
 
    void calculateAnswers(std::string inputFileName)
@@ -310,6 +534,11 @@ public:
    ulong getSecondPuzzleAnswer() { return _secondPuzzleAnswer; }
 };
 
+void calculateAnswers(Helper* helper, const std::string inputFileName)
+{
+   helper->calculateAnswers(inputFileName);
+}
+
 int main()
 {
    std::cout << "Advent of Code 2023 - Day 04" << std::endl;
@@ -317,6 +546,13 @@ int main()
    const std::string inputFileName = "input";
    Helper helper;
    helper.calculateAnswers(inputFileName);
+//   std::thread t1(calculateAnswers, &helper, inputFileName);
+//   do
+//   {
+//      sleep(1);
+//   }
+//   while(helper.getSecondPuzzleAnswer() == 0);
+
 
    ulong answer = helper.getFirstPuzzleAnswer();
    std::cout << "First half answer: " << answer << std::endl;
