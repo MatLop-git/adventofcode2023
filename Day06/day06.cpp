@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -6,22 +7,20 @@
 
 struct TimeDistancePair
 {
-   int Time = 0;
-   int Distance = 0;
+   ulong Time = 0;
+   ulong Distance = 0;
 
    TimeDistancePair() {}
-   TimeDistancePair(int time, int distance) : Time(time), Distance(distance) {}
+   TimeDistancePair(ulong time, ulong distance) : Time(time), Distance(distance) {}
    ~TimeDistancePair() {}
 };
 
 class Helper
 {
 private:
-   int _firstPuzzleAnswer = 0;
-   int _secondPuzzleAnswer = 0;
+   ulong _firstPuzzleAnswer = 0;
+   ulong _secondPuzzleAnswer = 0;
    std::vector<std::string> _fileInput;
-
-   std::vector<TimeDistancePair> _timeDistancePairs;
 
 public:
    Helper() {}
@@ -35,6 +34,7 @@ public:
       std::string lineDistance = _fileInput[1];
 
       // obtain times and distances
+      std::vector<TimeDistancePair> timeDistancePairs;
       std::string::size_type parsePos = lineDistance.find(":")+1;
       do
       {
@@ -44,7 +44,7 @@ public:
          std::string distanceString = lineDistance.substr(parsePos, parseEndPos);
          int time = atoi(timeString.c_str());
          int distance = atoi(distanceString.c_str());
-         this->_timeDistancePairs.push_back(TimeDistancePair(time, distance));
+         timeDistancePairs.push_back(TimeDistancePair(time, distance));
          parsePos = parseEndPos;
          if(parsePos != std::string::npos)
          {
@@ -54,15 +54,15 @@ public:
       while(parsePos != std::string::npos);
 
       // calculate number of ways you can beat the record of each race
-      std::vector<int> waysToBeatRecords;
-      for(int i=0; i<this->_timeDistancePairs.size(); ++i)
+      std::vector<ulong> waysToBeatRecords;
+      for(int i=0; i<timeDistancePairs.size(); ++i)
       {
-         int waysToBeatRecord = 0;
-         TimeDistancePair pair = this->_timeDistancePairs[i];
+         ulong waysToBeatRecord = 0;
+         TimeDistancePair pair = timeDistancePairs[i];
          std::cout << "Ways to beat " << pair.Distance << " in " << pair.Time << std::endl;
-         for(int j=1; j<pair.Time-1; ++j)
+         for(ulong j=1; j<pair.Time-1; ++j)
          {
-            int distance = j * (pair.Time-j);
+            ulong distance = j * (pair.Time-j);
             if( distance > pair.Distance )
             {
                std::cout << j << " goes " << distance << std::endl;
@@ -73,7 +73,7 @@ public:
       }
 
       // calculate margin of error
-      int margin = waysToBeatRecords[0];
+      ulong margin = waysToBeatRecords[0];
       std::cout << waysToBeatRecords[0];
       for(int i=1; i<waysToBeatRecords.size(); ++i)
       {
@@ -89,6 +89,55 @@ public:
    {
       this->_secondPuzzleAnswer = 0;
 
+      std::string lineTime = _fileInput[0];
+      std::string lineDistance = _fileInput[1];
+
+      // obtain time and distance strings and remove spaces
+      std::string::size_type parsePos = lineDistance.find(":")+1;
+      std::string timeString = lineTime.substr(parsePos);
+      timeString.erase(std::remove(timeString.begin(), timeString.end(), ' '), timeString.end());
+      std::string distanceString = lineDistance.substr(parsePos);
+      distanceString.erase(std::remove(distanceString.begin(), distanceString.end(), ' '), distanceString.end());
+      char* end = nullptr;
+      ulong time = strtoul(timeString.c_str(),&end,10);
+      ulong distance = strtoul(distanceString.c_str(),&end,10);
+      TimeDistancePair pair(time, distance);
+
+      // find the minimum time to beat the record
+      std::cout << "Ways to beat " << pair.Distance << " in " << pair.Time << std::endl;
+      ulong minTime = 0, maxTime = pair.Time;
+      time = minTime;
+      do
+      {
+         time++;
+         distance = time * (pair.Time-time);
+         if( distance > pair.Distance )
+         {
+            std::cout << time << " goes " << distance << std::endl;
+            minTime = time;
+         }
+      }
+      while(minTime == 0);
+      // find the maximum time after which it stops beating the record
+      time = maxTime;
+      do
+      {
+         time--;
+         distance = time * (pair.Time-time);
+         if( distance > pair.Distance )
+         {
+            std::cout << time << " goes " << distance << std::endl;
+            maxTime = time;
+         }
+      }
+      while(maxTime == pair.Time);
+
+      // calculate number of ways you can beat the record
+      // by substracting the min time from the max time we found the number of ways without having to go through all of them
+      ulong waysToBeatRecord = maxTime - minTime + 1;
+
+      // calculate margin of error
+      this->_secondPuzzleAnswer = waysToBeatRecord;
    }
 
    void calculateAnswers(std::string inputFileName)
