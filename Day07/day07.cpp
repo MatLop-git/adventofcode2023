@@ -87,57 +87,7 @@ struct HandBidPair
          cardIndex--;
       }
       while(cardIndex > 0);
-      
-
-/*      for(int i=handAux.size()-1; i>0; --i)
-      {
-         int matches = 0;
-         char card = handAux[i];
-         for(int j=i-1; j>=0; --j)
-         {
-            if(card == handAux[j])
-            {
-               matches++;
-               handAux.erase(j, 1);
-            }
-         }
-
-         if( matches == 4 )
-         {
-            this->Type = HandType::FiveOfAKind;
-         }
-         else if( matches == 3 )
-         {
-            this->Type = HandType::FourOfAKind;
-         }
-         else if( matches == 2 )
-         {
-            if( this->Type == HandType::OnePair )
-            {
-               this->Type = HandType::FullHouse;
-            }
-            else
-            {
-               this->Type = HandType::ThreeOfAKind;
-            }
-         }
-         else if( matches == 1 )
-         {
-            if( this->Type == HandType::ThreeOfAKind )
-            {
-               this->Type = HandType::FullHouse;
-            }
-            else if( this->Type == HandType::OnePair )
-            {
-               this->Type = HandType::TwoPair;
-            }
-            else
-            {
-               this->Type = HandType::OnePair;
-            }
-         }
-      }
-*/   }
+   }
 };
 
 class Helper
