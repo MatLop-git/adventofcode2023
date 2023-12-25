@@ -23,70 +23,148 @@ struct HandBidPair
    HandType Type = AllDifferent;
 
    HandBidPair() {}
-   HandBidPair(std::string hand, int bid) : Hand(hand), Bid(bid)
+   HandBidPair(std::string hand, int bid, bool withJoker=false) : Hand(hand), Bid(bid)
    {
-      this->obtainHandType();
+      this->obtainHandType(withJoker);
    }
    ~HandBidPair() {}
 
-   void obtainHandType()
+   void obtainHandType(bool withJoker=false)
    {
       this->Type = HandType::AllDifferent;
 
       std::string handAux = this->Hand;
+      int jokers = 0;
       int cardIndex = handAux.size()-1;
       do
       {
          int matches = 0;
          char card = handAux[cardIndex];
-         for(int j=cardIndex-1; j>=0; --j)
+         if( withJoker == true && card == 'J' )
          {
-            if(card == handAux[j])
-            {
-               matches++;
-               handAux.erase(j, 1);
-               cardIndex--;
-            }
+            // If 'J' just sum the number of Js and continue
+            jokers++;
          }
+         else
+         {
+            // Search cards with the same value (matches)
+            for(int j=cardIndex-1; j>=0; --j)
+            {
+               if(card == handAux[j])
+               {
+                  matches++;
+                  handAux.erase(j, 1);
+                  cardIndex--;
+               }
+            }
 
-         if( matches == 4 )
-         {
-            this->Type = HandType::FiveOfAKind;
-         }
-         else if( matches == 3 )
-         {
-            this->Type = HandType::FourOfAKind;
-         }
-         else if( matches == 2 )
-         {
-            if( this->Type == HandType::OnePair )
+            // Determine HandType according to the number of cards with the same value (matches)
+            if( matches == 4 )
             {
-               this->Type = HandType::FullHouse;
+               this->Type = HandType::FiveOfAKind;
             }
-            else
+            else if( matches == 3 )
             {
-               this->Type = HandType::ThreeOfAKind;
+               this->Type = HandType::FourOfAKind;
             }
-         }
-         else if( matches == 1 )
-         {
-            if( this->Type == HandType::ThreeOfAKind )
+            else if( matches == 2 )
             {
-               this->Type = HandType::FullHouse;
+               if( this->Type == HandType::OnePair )
+               {
+                  this->Type = HandType::FullHouse;
+               }
+               else
+               {
+                  this->Type = HandType::ThreeOfAKind;
+               }
             }
-            else if( this->Type == HandType::OnePair )
+            else if( matches == 1 )
             {
-               this->Type = HandType::TwoPair;
-            }
-            else
-            {
-               this->Type = HandType::OnePair;
+               if( this->Type == HandType::ThreeOfAKind )
+               {
+                  this->Type = HandType::FullHouse;
+               }
+               else if( this->Type == HandType::OnePair )
+               {
+                  this->Type = HandType::TwoPair;
+               }
+               else
+               {
+                  this->Type = HandType::OnePair;
+               }
             }
          }
 
          cardIndex--;
       }
       while(cardIndex > 0);
+
+      // If withJoker, determine HandType according to the number of Js
+      if( withJoker == true )
+      {
+         if( handAux[0] == 'J' )
+         {
+            jokers++;
+         }
+
+         if( jokers == 5 )
+         {
+            this->Type = HandType::FiveOfAKind;
+         }
+         else if( jokers == 4 )
+         {
+            this->Type = HandType::FiveOfAKind;
+         }
+         else if( jokers == 3 )
+         {
+            if( this->Type == HandType::OnePair )
+            {
+               this->Type = HandType::FiveOfAKind;
+            }
+            else
+            {
+               this->Type = HandType::FourOfAKind;
+            }
+         }
+         else if( jokers == 2 )
+         {
+            if( this->Type == HandType::ThreeOfAKind )
+            {
+               this->Type = HandType::FiveOfAKind;
+            }
+            else if( this->Type == HandType::OnePair )
+            {
+               this->Type = HandType::FourOfAKind;
+            }
+            else
+            {
+               this->Type = HandType::ThreeOfAKind;
+            }
+         }
+         else if( jokers == 1 )
+         {
+            if( this->Type == HandType::FourOfAKind )
+            {
+               this->Type = HandType::FiveOfAKind;
+            }
+            else if( this->Type == HandType::ThreeOfAKind )
+            {
+               this->Type = HandType::FourOfAKind;
+            }
+            else if( this->Type == HandType::TwoPair )
+            {
+               this->Type = HandType::FullHouse;
+            }
+            else if( this->Type == HandType::OnePair )
+            {
+               this->Type = HandType::ThreeOfAKind;
+            }
+            else
+            {
+               this->Type = HandType::OnePair;
+            }
+         }
+      }
    }
 };
 
@@ -122,6 +200,27 @@ public:
       return 0;
    }
 
+   static int getCardWeightWithJoker(const char card)
+   {
+      switch( card )
+      {
+         case 'J': return 1;
+         case '2': return 2;
+         case '3': return 3;
+         case '4': return 4;
+         case '5': return 5;
+         case '6': return 6;
+         case '7': return 7;
+         case '8': return 8;
+         case '9': return 9;
+         case 'T': return 10;
+         case 'Q': return 12;
+         case 'K': return 13;
+         case 'A': return 14;
+      }
+      return 0;
+   }
+
    static bool getLowerHand(HandBidPair a, HandBidPair b)
    {
       // compare hand types
@@ -139,6 +238,30 @@ public:
          {
             int weightA = getCardWeight(cardA);
             int weightB = getCardWeight(cardB);
+            return (weightA < weightB);
+         }
+      }
+
+      return false;
+   }
+
+   static bool getLowerHandWithJoker(HandBidPair a, HandBidPair b)
+   {
+      // compare hand types
+      if( a.Type != b.Type )
+      {
+         return (a.Type < b.Type);
+      }
+
+      // if equal hand types, compare chars one by one
+      for(int i=0; i<a.Hand.size(); ++i)
+      {
+         char cardA = a.Hand[i];
+         char cardB = b.Hand[i];
+         if(cardA != cardB)
+         {
+            int weightA = getCardWeightWithJoker(cardA);
+            int weightB = getCardWeightWithJoker(cardB);
             return (weightA < weightB);
          }
       }
@@ -165,10 +288,10 @@ public:
       // sort hands using sort method
       std::sort(handsBidPairs.begin(), handsBidPairs.end(), getLowerHand);
 
-      for(int i=0; i<handsBidPairs.size(); ++i)
-      {
-         std::cout << handsBidPairs[i].Hand << " - " << handsBidPairs[i].Type << std::endl;
-      }
+//      for(int i=0; i<handsBidPairs.size(); ++i)
+//      {
+//         std::cout << handsBidPairs[i].Hand << " - " << handsBidPairs[i].Type << std::endl;
+//      }
 
       // calculate earnings
       for(int i=0; i<handsBidPairs.size(); ++i)
@@ -176,7 +299,7 @@ public:
          HandBidPair pair = handsBidPairs[i];
          int rank = i + 1;
          ulong winnings = rank * pair.Bid;
-         std::cout << rank << " $ " << winnings << std::endl;
+//         std::cout << rank << " $ " << winnings << std::endl;
          this->_firstPuzzleAnswer += winnings;
       }
    }
@@ -185,6 +308,35 @@ public:
    {
       this->_secondPuzzleAnswer = 0;
 
+      // obtain hands and bids
+      std::vector<HandBidPair> handsBidPairs;
+      for(int i=0; i<_fileInput.size(); ++i)
+      {
+         std::string line = _fileInput[i];
+         std::string::size_type parsePos = line.find(" ");
+         std::string hand = line.substr(0, parsePos);
+         std::string bidString = line.substr(parsePos+1);
+         int bid = atoi(bidString.c_str());
+         handsBidPairs.push_back(HandBidPair(hand, bid, true));
+      }
+
+      // sort hands using sort method
+      std::sort(handsBidPairs.begin(), handsBidPairs.end(), getLowerHandWithJoker);
+
+//      for(int i=0; i<handsBidPairs.size(); ++i)
+//      {
+//         std::cout << handsBidPairs[i].Hand << " - " << handsBidPairs[i].Type << std::endl;
+//      }
+
+      // calculate earnings
+      for(int i=0; i<handsBidPairs.size(); ++i)
+      {
+         HandBidPair pair = handsBidPairs[i];
+         int rank = i + 1;
+         ulong winnings = rank * pair.Bid;
+//         std::cout << rank << " $ " << winnings << std::endl;
+         this->_secondPuzzleAnswer += winnings;
+      }
    }
 
    void calculateAnswers(std::string inputFileName)
