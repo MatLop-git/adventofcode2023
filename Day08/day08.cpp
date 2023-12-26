@@ -31,7 +31,13 @@ public:
    Helper() {}
    ~Helper() {}
 
-   static int GetNode(std::string label, std::vector<Node> nodes)
+   static Node GetNode(std::string label, std::vector<Node> nodes)
+   {
+      int nodeIndex = GetNodeIndex(label, nodes);
+      return nodes[nodeIndex];
+   }
+
+   static int GetNodeIndex(std::string label, std::vector<Node> nodes)
    {
       for(int i=0; i<nodes.size(); ++i)
       {
@@ -43,13 +49,15 @@ public:
       return -1;
    }
 
-   void calculateFirstPuzzleAnswer()
+   /** Returns directions from input file */
+   std::string getDirections()
    {
-      this->_firstPuzzleAnswer = 0;
+      return _fileInput[0];
+   }
 
-      // obtain directions
-      std::string directions = _fileInput[0];
-
+   /** Returns network nodes from input file */
+   std::vector<Node> getNodes()
+   {
       std::vector<Node> nodes;
       for(int i=2; i<_fileInput.size(); ++i)
       {
@@ -59,6 +67,18 @@ public:
          std::string right = line.substr(RIGHT_POSITION, LABEL_WIDTH);
          nodes.push_back(Node(label, left, right));
       }
+      return nodes;
+   }
+
+   void calculateFirstPuzzleAnswer()
+   {
+      this->_firstPuzzleAnswer = 0;
+
+      // obtain directions
+      std::string directions = getDirections();
+
+      // obtain network nodes
+      std::vector<Node> nodes = getNodes();
 
 //      for(int i=0; i<handsBidPairs.size(); ++i)
 //      {
@@ -66,8 +86,7 @@ public:
 //      }
 
       // find path start (AAA)
-      int nodeIndex = GetNode("AAA", nodes);
-      Node currentNode = nodes[nodeIndex];
+      Node currentNode = GetNode("AAA", nodes);
 
       // calculate path
       int pathIndex = 0;
@@ -84,8 +103,7 @@ public:
          {
             target = currentNode.Direction[1];
          }
-         nodeIndex = GetNode(target, nodes);
-         currentNode = nodes[nodeIndex];
+         currentNode = GetNode(target, nodes);
 
          pathIndex++;
          if(pathIndex > directions.size()-1)
@@ -93,7 +111,7 @@ public:
             pathIndex = 0;
          }
 
-         std::cout << currentNode.Label << std::endl;
+//         std::cout << currentNode.Label << std::endl;
       }
       while(currentNode.Label != "ZZZ");
    }
