@@ -9,45 +9,65 @@
 class Helper
 {
 private:
-   ulong _firstPuzzleAnswer = 0;
-   ulong _secondPuzzleAnswer = 0;
+   long _firstPuzzleAnswer = 0;
+   long _secondPuzzleAnswer = 0;
    std::vector<std::string> _fileInput;
 
 public:
    Helper() {}
    ~Helper() {}
 
-   ulong getExtrapolatedValue(std::vector<ulong> history)
+   long getNextExtrapolatedValue(std::vector<long> history)
    {
-      std::vector<ulong> sequence = history;
-//      std::vector<ulong> sequencesEnds;
-      ulong extrapolatedValue = 0;
+      std::vector<long> sequence = history;
+      long extrapolatedValue = sequence[sequence.size()-1];
       // Find the sequence where there are all zeros
       bool allZeros = true;
       do
       {
          allZeros = true;
-         extrapolatedValue += sequence[sequence.size()-1];
-//         sequencesEnds.push_back(sequence[sequence.size()-1]);
-         std::vector<ulong> nextSequence;
+         std::vector<long> nextSequence;
          for(int i=0; i<sequence.size()-1; ++i)
          {
-            ulong difference = sequence[i+1] - sequence[i];
+            long difference = sequence[i+1] - sequence[i];
             nextSequence.push_back(difference);
             allZeros = allZeros && (difference == 0);
             std::cout << difference << " ";
          }
          std::cout << std::endl;
          sequence = nextSequence;
+         extrapolatedValue += sequence[sequence.size()-1];
       }
       while (allZeros == false);
       
-//      // Go up in sequences to find the extrapolated value
-//      ulong extrapolatedValue = sequencesEnds[sequencesEnds.size()-1];
-//      for(int i=sequencesEnds.size()-2; i>=0; --i)
-//      {
-//         extrapolatedValue += sequencesEnds[i]
-//      }
+      return extrapolatedValue;
+   }
+
+   long getPreviousExtrapolatedValue(std::vector<long> history)
+   {
+      std::vector<long> sequence = history;
+      long extrapolatedValue = sequence[0];
+      // Find the sequence where there are all zeros
+      bool allZeros = true;
+      int multiplier = -1; // Don't ask why, I just noticed that instead of always sum (like getNext) going backwards you need to interleave sums and substractions
+      do
+      {
+         allZeros = true;
+         std::vector<long> nextSequence;
+         for(int i=0; i<sequence.size()-1; ++i)
+         {
+            long difference = sequence[i+1] - sequence[i];
+            nextSequence.push_back(difference);
+            allZeros = allZeros && (difference == 0);
+            std::cout << difference << " ";
+         }
+         std::cout << std::endl;
+         sequence = nextSequence;
+         extrapolatedValue += (sequence[0] * multiplier);
+         multiplier *= -1;
+      }
+      while (allZeros == false);
+      
       return extrapolatedValue;
    }
 
@@ -61,13 +81,13 @@ public:
       {
          std::string line = _fileInput[i];
          // Get history values
-         std::vector<ulong> history;
+         std::vector<long> history;
          std::string::size_type parsePos = 0;
          do
          {
             std::string::size_type parseEndPos = line.find(" ", parsePos);
             std::string valueString = line.substr(parsePos, parseEndPos);
-            ulong value = strtoul(valueString.c_str(),&end,10);
+            long value = strtoul(valueString.c_str(),&end,10);
             history.push_back(value);
             std::cout << value << " ";
             parsePos = parseEndPos;
@@ -79,17 +99,44 @@ public:
          while(parsePos != std::string::npos);
 
          std::cout << std::endl;
-         ulong extrapolatedValue = this->getExtrapolatedValue(history);
+         long extrapolatedValue = this->getNextExtrapolatedValue(history);
          std::cout << "extrapolated " << extrapolatedValue << std::endl;
          this->_firstPuzzleAnswer += extrapolatedValue;
       }
-
    }
 
    void calculateSecondPuzzleAnswer()
    {
       this->_secondPuzzleAnswer = 0;
 
+      // Obtain OASIS report
+      char* end = nullptr;
+      for(int i=0; i<this->_fileInput.size(); ++i)
+      {
+         std::string line = _fileInput[i];
+         // Get history values
+         std::vector<long> history;
+         std::string::size_type parsePos = 0;
+         do
+         {
+            std::string::size_type parseEndPos = line.find(" ", parsePos);
+            std::string valueString = line.substr(parsePos, parseEndPos);
+            long value = strtoul(valueString.c_str(),&end,10);
+            history.push_back(value);
+            std::cout << value << " ";
+            parsePos = parseEndPos;
+            if(parsePos != std::string::npos)
+            {
+               parsePos++;
+            }
+         }
+         while(parsePos != std::string::npos);
+
+         std::cout << std::endl;
+         long extrapolatedValue = this->getPreviousExtrapolatedValue(history);
+         std::cout << "extrapolated " << extrapolatedValue << std::endl;
+         this->_secondPuzzleAnswer += extrapolatedValue;
+      }
    }
 
    void calculateAnswers(std::string inputFileName)
@@ -122,7 +169,7 @@ int main()
    Helper helper;
    helper.calculateAnswers(inputFileName);
 
-   ulong answer = helper.getFirstPuzzleAnswer();
+   long answer = helper.getFirstPuzzleAnswer();
    std::cout << "First half answer: " << answer << std::endl;
 
    answer = helper.getSecondPuzzleAnswer();
