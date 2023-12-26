@@ -2,6 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -9,6 +10,23 @@
 static const int LABEL_WIDTH = 3;
 static const int LEFT_POSITION = 7;
 static const int RIGHT_POSITION = 12;
+
+ulong gcd(ulong a, ulong b)
+{
+    for (;;)
+    {
+        if (a == 0) return b;
+        b %= a;
+        if (b == 0) return a;
+        a %= b;
+    }
+}
+
+ulong lcm(ulong a, ulong b)
+{
+    ulong temp = gcd(a, b);
+    return temp ? (a / temp * b) : 0;
+}
 
 struct Node
 {
@@ -49,6 +67,19 @@ public:
       return -1;
    }
 
+   static std::vector<Node> GetNodesEndingWith(char ending, std::vector<Node> nodes)
+   {
+      std::vector<Node> matchingNodes;
+      for(int i=0; i<nodes.size(); ++i)
+      {
+         if(nodes[i].Label[LABEL_WIDTH-1] == ending)
+         {
+            matchingNodes.push_back(nodes[i]);
+         }
+      }
+      return matchingNodes;
+   }
+
    /** Returns directions from input file */
    std::string getDirections()
    {
@@ -79,11 +110,6 @@ public:
 
       // obtain network nodes
       std::vector<Node> nodes = getNodes();
-
-//      for(int i=0; i<handsBidPairs.size(); ++i)
-//      {
-//         std::cout << handsBidPairs[i].Hand << " - " << handsBidPairs[i].Type << std::endl;
-//      }
 
       // find path start (AAA)
       Node currentNode = GetNode("AAA", nodes);
@@ -120,8 +146,134 @@ public:
    {
       this->_secondPuzzleAnswer = 0;
 
-   }
+      // obtain directions
+      std::string directions = getDirections();
 
+      // obtain network nodes
+      std::vector<Node> nodes = getNodes();
+
+      // find path start (AAA)
+      std::vector<Node> startingNodes = GetNodesEndingWith('A', nodes);
+
+      // calculate path
+      std::vector<ulong> steps;
+      for(int i=0; i<startingNodes.size(); ++i)
+      {
+         Node currentNode = startingNodes[i];
+         int pathIndex = 0;
+         ulong currentSteps = 0;
+         do
+         {
+            currentSteps++;
+
+            std::string target = "";
+            if( directions[pathIndex] == 'L' )
+            {
+               target = currentNode.Direction[0];
+            }
+            else
+            {
+               target = currentNode.Direction[1];
+            }
+            currentNode = GetNode(target, nodes);
+
+            pathIndex++;
+            if(pathIndex > directions.size()-1)
+            {
+               pathIndex = 0;
+            }
+         }
+         while(currentNode.Label[LABEL_WIDTH-1] != 'Z');
+
+         std::cout << i << " - " << currentSteps << std::endl;
+         steps.push_back(currentSteps);
+
+         ulong pathIndexZ = pathIndex;
+         currentSteps = 0;
+         do
+         {
+            currentSteps++;
+
+            std::string target = "";
+            if( directions[pathIndex] == 'L' )
+            {
+               target = currentNode.Direction[0];
+            }
+            else
+            {
+               target = currentNode.Direction[1];
+            }
+            currentNode = GetNode(target, nodes);
+
+            pathIndex++;
+            if(pathIndex > directions.size()-1)
+            {
+               pathIndex = 0;
+            }
+         }
+         while(currentNode.Label[LABEL_WIDTH-1] != 'Z' && pathIndexZ != pathIndex);         
+         std::cout << i << " z " << currentSteps << std::endl;
+      }
+
+      this->_secondPuzzleAnswer = std::accumulate(steps.begin(), steps.end(), 1, lcm);
+   }
+/*
+   void calculateSecondPuzzleAnswer()
+   {
+      this->_secondPuzzleAnswer = 0;
+
+      // obtain directions
+      std::string directions = getDirections();
+
+      // obtain network nodes
+      std::vector<Node> nodes = getNodes();
+
+//      for(int i=0; i<handsBidPairs.size(); ++i)
+//      {
+//         std::cout << handsBidPairs[i].Hand << " - " << handsBidPairs[i].Type << std::endl;
+//      }
+
+      // find path starts (nodes that ends with A)
+      std::vector<Node> currentNodes = GetNodesEndingWith('A', nodes);
+
+      // calculate path
+      bool pathEnd = true;
+      int pathIndex = 0;
+      do
+      {
+         this->_secondPuzzleAnswer++;
+
+         pathEnd = true;
+         for(int i=0; i<currentNodes.size(); ++i)
+         {
+            std::string target = "";
+            if( directions[pathIndex] == 'L' )
+            {
+               target = currentNodes[i].Direction[0];
+            }
+            else
+            {
+               target = currentNodes[i].Direction[1];
+            }
+            currentNodes[i] = GetNode(target, nodes);
+            pathEnd = pathEnd && (currentNodes[i].Label[LABEL_WIDTH-1] == 'Z');
+         }
+
+         pathIndex++;
+         if(pathIndex > directions.size()-1)
+         {
+            pathIndex = 0;
+         }
+
+         for(int i=0; i<currentNodes.size(); ++i)
+         {
+            std::cout << currentNodes[i].Label;
+         }
+         std::cout << std::endl;
+      }
+      while(pathEnd == false);
+   }
+*/
    void calculateAnswers(std::string inputFileName)
    {
       this->readFileInput(inputFileName);
@@ -152,7 +304,7 @@ int main()
    Helper helper;
    helper.calculateAnswers(inputFileName);
 
-   int answer = helper.getFirstPuzzleAnswer();
+   ulong answer = helper.getFirstPuzzleAnswer();
    std::cout << "First half answer: " << answer << std::endl;
 
    answer = helper.getSecondPuzzleAnswer();
