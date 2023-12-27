@@ -94,12 +94,44 @@ public:
       return universe;
    }
 
-   void calculateFirstPuzzleAnswer()
+   int getDistance(std::vector<std::vector<int>> &universe, Coord coordA, Coord coordB)
    {
-      this->_firstPuzzleAnswer = 0;
+      int x0 = coordA.X;
+      int x1 = coordB.X;
+      if(coordA.X > coordB.X)
+      {
+         x0 = coordB.X;
+         x1 = coordA.X;
+      }
+      int y0 = coordA.Y;
+      int y1 = coordB.Y;
+      if(coordA.Y > coordB.Y)
+      {
+         y0 = coordB.Y;
+         y1 = coordA.Y;
+      }
 
-      std::vector<Coord> galaxies = this->getGalaxies();
-      std::vector<std::vector<int>> universe = this->getExpandedUniverse();
+      int dist = 0;
+      if( x0 != x1 )
+      {
+         for(int x=x0; x<x1; ++x)
+         {
+            dist += universe[y0][x];
+         }
+      }
+      if( y0 != y1 )
+      {
+         for(int y=y0; y<y1; ++y)
+         {
+            dist += universe[y][x1];
+         }
+      }
+
+      return dist;
+   }
+
+   void printUniverse(std::vector<std::vector<int>> &universe)
+   {
       for(int y=0; y<universe.size(); ++y)
       {
          std::vector<int> xVector = universe[y];
@@ -109,41 +141,25 @@ public:
          }
          std::cout << std::endl;
       }
+   }
+
+   void calculateFirstPuzzleAnswer()
+   {
+      this->_firstPuzzleAnswer = 0;
+
+      std::vector<Coord> galaxies = this->getGalaxies();
+      std::vector<std::vector<int>> universe = this->getExpandedUniverse();
+
+      this->printUniverse(universe);
+
       std::vector<std::pair<Coord, Coord>> pairs = this->getGalaxiesPairs(galaxies);
       for(int i=0; i<pairs.size(); ++i)
       {
          Coord coordA = pairs[i].first;
          Coord coordB = pairs[i].second;
-         int x0 = coordA.X;
-         int x1 = coordB.X;
-         if(coordA.X > coordB.X)
-         {
-            x0 = coordB.X;
-            x1 = coordA.X;
-         }
-         int y0 = coordA.Y;
-         int y1 = coordB.Y;
-         if(coordA.Y > coordB.Y)
-         {
-            y0 = coordB.Y;
-            y1 = coordA.Y;
-         }
-         int dist = 0;
-         if( x0 != x1 )
-         {
-            for(int x=x0; x<x1; ++x)
-            {
-               dist += universe[y0][x];
-            }
-         }
-         if( y0 != y1 )
-         {
-            for(int y=y0; y<y1; ++y)
-            {
-               dist += universe[y][x1];
-            }
-         }
+         int dist = this->getDistance(universe, coordA, coordB);
          std::cout << "[" << coordA.X << "][" << coordA.Y << "]->[" << coordB.X << "][" << coordB.Y << "] = " << dist << std::endl;
+
          this->_firstPuzzleAnswer += dist;
       }
    }
