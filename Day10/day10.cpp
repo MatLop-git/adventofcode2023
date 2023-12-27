@@ -8,6 +8,61 @@
 
 enum Direction { None, Right, Left, Up, Down };
 
+static bool IsPointInsideOfPipesLoop(std::vector<std::pair<int, int>> pipes, int pointX, int pointY)
+{
+   bool isInside = false;
+   int pipesCount = pipes.size();
+   int i, j = 0;
+   for (i = 0, j = pipesCount-1; i < pipesCount; j = i++)
+   {
+      if ( ((pipes[i].second>pointY) != (pipes[j].second>pointY)) &&
+         (pointX < (pipes[j].first-pipes[i].first) * (pointY-pipes[i].second) / (pipes[j].second-pipes[i].second) + pipes[i].first) )
+      {
+         isInside = !isInside;
+      }
+   }
+   return isInside;
+}
+
+static bool IsPointPartOfPipesLoop(std::vector<std::pair<int, int>> pipes, int pointX, int pointY)
+{
+   for(int i=0; i<pipes.size(); ++i)
+   {
+      if(pipes[i].first == pointX && pipes[i].second == pointY)
+      {
+         return true;
+      }
+   }
+   return false;
+}
+
+static void GetPipesLoopBounds(std::vector<std::pair<int, int>> pipes, int &minX, int &minY, int &maxX, int &maxY)
+{
+   minX = minY = pipes[0].first;
+   maxX = maxY = pipes[0].second;
+   for(int i=1; i<pipes.size(); ++i)
+   {
+      int pipeX = pipes[i].first;
+      int pipeY = pipes[i].second;
+      if( pipeX < minX )
+      {
+         minX = pipeX;
+      }
+      else if( pipeX > maxX )
+      {
+         maxX = pipeX;
+      }
+      if( pipeY < minY )
+      {
+         minY = pipeY;
+      }
+      else if( pipeY > maxY )
+      {
+         maxY = pipeY;
+      }
+   }
+}
+
 class Helper
 {
 private:
@@ -230,10 +285,8 @@ public:
       return pipes;
    }
 
-   void calculateFirstPuzzleAnswer()
+   std::pair<int, int> getStartingPoint()
    {
-      this->_firstPuzzleAnswer = 0;
-
       // Obtain starting point
       int startingY = -1;
       std::string::size_type startingX = std::string::npos;
@@ -245,10 +298,19 @@ public:
       }
       while(startingX == std::string::npos);
 
-      std::cout << "Starting point at [" << startingX << "," << startingY << "]" << std::endl;
+      return std::pair<int, int>(startingX, startingY);
+   }
+
+   void calculateFirstPuzzleAnswer()
+   {
+      this->_firstPuzzleAnswer = 0;
+
+      // Obtain starting point
+      std::pair<int, int> startingPoint = this->getStartingPoint();
+      std::cout << "Starting point at [" << startingPoint.first << "," << startingPoint.second << "]" << std::endl;
 
       // Find loop
-      std::vector<std::pair<int, int>> loopPipes = getLoopPipes(startingX, startingY);
+      std::vector<std::pair<int, int>> loopPipes = getLoopPipes(startingPoint.first, startingPoint.second);
 
       this->_firstPuzzleAnswer = loopPipes.size()/2;
    }
@@ -257,6 +319,42 @@ public:
    {
       this->_secondPuzzleAnswer = 0;
 
+      // Obtain starting point
+      std::pair<int, int> startingPoint = this->getStartingPoint();
+      std::cout << "Starting point at [" << startingPoint.first << "," << startingPoint.second << "]" << std::endl;
+
+      // Find loop
+      std::vector<std::pair<int, int>> loopPipes = getLoopPipes(startingPoint.first, startingPoint.second);
+
+      // Get bounds of pipes loop to avoid unnecessary points check (points outside of bounds aren't enclosed by the pipes loop)
+      int minX, minY, maxX, maxY;
+      GetPipesLoopBounds(loopPipes, minX, minY, maxX, maxY);
+      std::cout << "Bounds [" << minX << "," << minY << "][" << maxX << "," << maxY << "]" << std::endl;
+
+      // Search the points that are enclosed by the pipes loop (inside the polygon formed by it)
+      for(int y=minY; y<=maxY; ++y)
+      {
+         for(int x=minX; x<=maxX; ++x)
+         {
+            if( IsPointPartOfPipesLoop(loopPipes, x, y) == false )
+            {
+               if( IsPointInsideOfPipesLoop(loopPipes, x, y) )
+               {
+                  std::cout << ".";
+                  this->_secondPuzzleAnswer++;
+               }
+               else
+               {
+                  std::cout << " ";
+               }
+            }
+            else
+            {
+               std::cout << "X";
+            }
+         }
+         std::cout << std::endl;
+      }
    }
 
    void calculateAnswers(std::string inputFileName)
