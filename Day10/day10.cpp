@@ -8,7 +8,7 @@
 
 enum Direction { None, Right, Left, Up, Down };
 
-static bool IsPointInsideOfPipesLoop(std::vector<std::pair<int, int>> pipes, int pointX, int pointY)
+static bool IsPointInsideOfPipesLoop(std::vector<std::pair<int, int>> &pipes, int pointX, int pointY)
 {
    bool isInside = false;
    int pipesCount = pipes.size();
@@ -24,7 +24,7 @@ static bool IsPointInsideOfPipesLoop(std::vector<std::pair<int, int>> pipes, int
    return isInside;
 }
 
-static bool IsPointPartOfPipesLoop(std::vector<std::pair<int, int>> pipes, int pointX, int pointY)
+static bool IsPointPartOfPipesLoop(std::vector<std::pair<int, int>> &pipes, int pointX, int pointY)
 {
    for(int i=0; i<pipes.size(); ++i)
    {
@@ -36,7 +36,7 @@ static bool IsPointPartOfPipesLoop(std::vector<std::pair<int, int>> pipes, int p
    return false;
 }
 
-static void GetPipesLoopBounds(std::vector<std::pair<int, int>> pipes, int &minX, int &minY, int &maxX, int &maxY)
+static void GetPipesLoopBounds(std::vector<std::pair<int, int>> &pipes, int &minX, int &minY, int &maxX, int &maxY)
 {
    minX = minY = pipes[0].first;
    maxX = maxY = pipes[0].second;
