@@ -18,8 +18,8 @@ struct Coord
 class Helper
 {
 private:
-   long _firstPuzzleAnswer = 0;
-   long _secondPuzzleAnswer = 0;
+   ulong _firstPuzzleAnswer = 0;
+   ulong _secondPuzzleAnswer = 0;
    std::vector<std::string> _fileInput;
 
 public:
@@ -55,19 +55,19 @@ public:
       return pairs;
    }
 
-   std::vector<std::vector<int>> getExpandedUniverse()
+   std::vector<std::vector<long>> getExpandedUniverse(long expansionRate)
    {
-      std::vector<std::vector<int>> universe;
+      std::vector<std::vector<long>> universe;
       int xSize = this->_fileInput[0].length();
       int ySize = this->_fileInput.size();
       // Verify horizontal expansion
       for(int y=0; y<ySize; ++y)
       {
          bool expandedX = (this->_fileInput[y].find_first_not_of('.') == std::string::npos);
-         std::vector<int> xVector;
+         std::vector<long> xVector;
          for(int x=0; x<xSize; ++x)
          {
-            xVector.push_back( expandedX ? 2 : 1 );
+            xVector.push_back( expandedX ? expansionRate : 1 );
          }
          universe.push_back(xVector);
       }
@@ -87,14 +87,14 @@ public:
          {
             for(int y=0; y<ySize; ++y)
             {
-               universe[y][x] = 2;
+               universe[y][x] = expansionRate;
             }
          }
       }
       return universe;
    }
 
-   int getDistance(std::vector<std::vector<int>> &universe, Coord coordA, Coord coordB)
+   ulong getDistance(std::vector<std::vector<long>> &universe, Coord coordA, Coord coordB)
    {
       int x0 = coordA.X;
       int x1 = coordB.X;
@@ -111,7 +111,7 @@ public:
          y1 = coordA.Y;
       }
 
-      int dist = 0;
+      ulong dist = 0;
       if( x0 != x1 )
       {
          for(int x=x0; x<x1; ++x)
@@ -130,11 +130,11 @@ public:
       return dist;
    }
 
-   void printUniverse(std::vector<std::vector<int>> &universe)
+   void printUniverse(std::vector<std::vector<long>> &universe)
    {
       for(int y=0; y<universe.size(); ++y)
       {
-         std::vector<int> xVector = universe[y];
+         std::vector<long> xVector = universe[y];
          for(int x=0; x<xVector.size(); ++x)
          {
             std::cout << xVector[x];
@@ -148,17 +148,17 @@ public:
       this->_firstPuzzleAnswer = 0;
 
       std::vector<Coord> galaxies = this->getGalaxies();
-      std::vector<std::vector<int>> universe = this->getExpandedUniverse();
+      std::vector<std::vector<long>> universe = this->getExpandedUniverse(2);
 
-      this->printUniverse(universe);
+//      this->printUniverse(universe);
 
       std::vector<std::pair<Coord, Coord>> pairs = this->getGalaxiesPairs(galaxies);
       for(int i=0; i<pairs.size(); ++i)
       {
          Coord coordA = pairs[i].first;
          Coord coordB = pairs[i].second;
-         int dist = this->getDistance(universe, coordA, coordB);
-         std::cout << "[" << coordA.X << "][" << coordA.Y << "]->[" << coordB.X << "][" << coordB.Y << "] = " << dist << std::endl;
+         ulong dist = this->getDistance(universe, coordA, coordB);
+//         std::cout << "[" << coordA.X << "][" << coordA.Y << "]->[" << coordB.X << "][" << coordB.Y << "] = " << dist << std::endl;
 
          this->_firstPuzzleAnswer += dist;
       }
@@ -168,6 +168,21 @@ public:
    {
       this->_secondPuzzleAnswer = 0;
 
+      std::vector<Coord> galaxies = this->getGalaxies();
+      std::vector<std::vector<long>> universe = this->getExpandedUniverse(1000000);
+
+//      this->printUniverse(universe);
+
+      std::vector<std::pair<Coord, Coord>> pairs = this->getGalaxiesPairs(galaxies);
+      for(int i=0; i<pairs.size(); ++i)
+      {
+         Coord coordA = pairs[i].first;
+         Coord coordB = pairs[i].second;
+         ulong dist = this->getDistance(universe, coordA, coordB);
+//         std::cout << "[" << coordA.X << "][" << coordA.Y << "]->[" << coordB.X << "][" << coordB.Y << "] = " << dist << std::endl;
+
+         this->_secondPuzzleAnswer += dist;
+      }
    }
 
    void calculateAnswers(std::string inputFileName)
@@ -188,8 +203,8 @@ public:
       }
    }
 
-   int getFirstPuzzleAnswer() { return _firstPuzzleAnswer; }
-   int getSecondPuzzleAnswer() { return _secondPuzzleAnswer; }
+   ulong getFirstPuzzleAnswer() { return _firstPuzzleAnswer; }
+   ulong getSecondPuzzleAnswer() { return _secondPuzzleAnswer; }
 };
 
 int main()
@@ -200,7 +215,7 @@ int main()
    Helper helper;
    helper.calculateAnswers(inputFileName);
 
-   long answer = helper.getFirstPuzzleAnswer();
+   ulong answer = helper.getFirstPuzzleAnswer();
    std::cout << "First half answer: " << answer << std::endl;
 
    answer = helper.getSecondPuzzleAnswer();
